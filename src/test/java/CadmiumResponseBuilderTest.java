@@ -21,9 +21,16 @@ public class CadmiumResponseBuilderTest {
     public void withNothing_returnsEmptyJsonDocument() throws Exception {
         JSONAssert.assertEquals(resourceAsString("empty_request.json"), builder.build(), true);
     }
+
     @Test
     public void withRegistrationOnly() throws Exception {
         JSONAssert.assertEquals(resourceAsString("with_registration_only.json"), builder.withRegistration("ML04SXT").build(), true);
+    }
+
+    @Test
+    public void withFeaturesOnly() throws Exception {
+        JSONAssert.assertEquals(resourceAsString("with_features_only.json"),
+                builder.withFeatures("steering wheel", "deuterium reactor", "warp drive").build(), true);
     }
 
     private String resourceAsString(String name) {
