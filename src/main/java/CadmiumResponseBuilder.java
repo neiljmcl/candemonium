@@ -21,11 +21,10 @@ public class CadmiumResponseBuilder {
     }
 
     public CadmiumResponseBuilder withFeatures(String... features) {
-        ArrayNode arrayNode = objectMapper.createArrayNode();
+        ArrayNode arrayNode = rootNode.putArray("features");
         for (String feature : features) {
             arrayNode.add(feature);
         }
-        rootNode.put("features", arrayNode);
         return this;
     }
 
