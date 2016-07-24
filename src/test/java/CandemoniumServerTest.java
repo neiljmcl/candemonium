@@ -1,14 +1,12 @@
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,25 +17,28 @@ public class CandemoniumServerTest {
     @Rule
     public WireMockRule candemonium = new WireMockRule(wireMockConfig().port(9092));
 
+    private CadmiumResponseBuilder aCadmiumRequest;
+    private CadmiumResponseBuilder aCadmiumResponse;
+
     @Before
     public void setup() {
-        candemonium.stubFor(get(urlEqualTo("/"))
+        aCadmiumRequest = new CadmiumResponseBuilder()
+                .withRegistration("ML04SXT")
+                .withFeatures("Warp drive");
+        aCadmiumResponse = new CadmiumResponseBuilder();
+        candemonium.stubFor(post(anyUrl())
                 .willReturn(
                         aResponse()
                         .withStatus(200)
-                        .withBody("bananas")
-                ));
+                        .withBody(aCadmiumResponse.build())));
     }
 
     @Test
-    public void status() throws Exception {
-        HttpResponse<String> response = Unirest.get("http://localhost:9092/").asString();
-        assertThat(response.getStatus()).isEqualTo(200);
-    }
-
-    @Test
-    public void body() throws Exception {
-        HttpResponse<String> response = Unirest.get("http://localhost:9092/").asString();
-        assertThat(response.getBody()).isEqualTo("bananas");
+    public void cadmiumResponse_fuzzyMatchOnRegistration() throws Exception {
+        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(containing("ML04SXT")));
     }
 }
