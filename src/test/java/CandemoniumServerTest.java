@@ -10,9 +10,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Created by neiljmcl on 23/07/2016.
- */
 public class CandemoniumServerTest {
     @Rule
     public WireMockRule candemonium = new WireMockRule(wireMockConfig().port(9092));
@@ -40,5 +37,17 @@ public class CandemoniumServerTest {
                 .asJson();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
                 .withRequestBody(containing("ML04SXT")));
+    }
+
+    @Test
+    public void cadmiumResponse_matcher() throws Exception {
+        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(equalToJson(aCadmiumRequest
+                        .withRegistration("ML04SXT")
+                        .withFeatures("Warp drive")
+                        .build())));
     }
 }
