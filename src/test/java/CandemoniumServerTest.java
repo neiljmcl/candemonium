@@ -40,7 +40,19 @@ public class CandemoniumServerTest {
     }
 
     @Test
-    public void cadmiumResponse_matcher() throws Exception {
+    public void cadmiumResponse_exactJsonMatch() throws Exception {
+        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(equalToJson(aCadmiumRequest
+                        .withRegistration("ML04SXT")
+                        .withFeatures("Warp drive")
+                        .build())));
+    }
+
+    @Test
+    public void cadmiumResponse_someKindOfJsonMatcher() throws Exception {
         HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
                 .body(aCadmiumRequest.build())
                 .asJson();
