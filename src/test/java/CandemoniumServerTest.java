@@ -3,6 +3,7 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -52,14 +53,23 @@ public class CandemoniumServerTest {
     }
 
     @Test
-    public void cadmiumResponse_someKindOfJsonMatcher() throws Exception {
+    public void cadmiumResponse_jsonPathMatch() throws Exception {
         HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
                 .body(aCadmiumRequest.build())
                 .asJson();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
-                .withRequestBody(equalToJson(aCadmiumRequest
-                        .withRegistration("ML04SXT")
-                        .withFeatures("Warp drive")
-                        .build())));
+                .withRequestBody(matchingJsonPath("$.registration")));
+    }
+
+    @Ignore
+    @Test
+    public void cadmiumResponse_someKindOfJsonMatcher() throws Exception {
+        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        ContractMatcher anIncomingResponse = new ContractMatcher();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(JsonValueMatcher.matches(anIncomingResponse
+                        .withRegistration("ML04SZT"))));
     }
 }

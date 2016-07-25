@@ -1,20 +1,29 @@
 import com.github.tomakehurst.wiremock.matching.MatchResult;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 
+
 /**
  * Created by neiljmcl on 24/07/2016.
  */
 public class JsonValueMatcher extends StringValuePattern {
 
-    public JsonValueMatcher(String expectedValue) {
-        super(expectedValue);
+    private final ContractMatcher contractMatcher;
+
+    public JsonValueMatcher(ContractMatcher contractMatcher) {
+        super("I don't care");
+        this.contractMatcher = contractMatcher;
     }
 
     public MatchResult match(String value) {
-        return null;
+        try {
+            contractMatcher.match(value);
+        } catch (AssertionError e) {
+            return MatchResult.of(false);
+        }
+        return MatchResult.of(true);
     }
 
-    public static JsonValueMatcher matches(String expectedValue) {
-        return new JsonValueMatcher(expectedValue);
+    public static JsonValueMatcher matches(ContractMatcher contractMatcher) {
+        return new JsonValueMatcher(contractMatcher);
     }
 }
