@@ -1,4 +1,6 @@
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.matching.MatchesJsonPathPattern;
+import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
@@ -62,6 +64,22 @@ public class CandemoniumServerTest {
                 .withRequestBody(matchingJsonPath("$.features"))
 
         );
+    }
+
+    @Test
+    public void cadmiumResponse_jsonPathMatchWithSlightlyCustomizedMatcher() throws Exception {
+        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(matchingRegistration("ML04SXT"))
+                .withRequestBody(matchingJsonPath("$.features"))
+
+        );
+    }
+
+    private StringValuePattern matchingRegistration(String registration) {
+        return new MatchesJsonPathPattern(String.format("$[?(@.registration == \"%s\")]", registration));
     }
 
 //    @Test
