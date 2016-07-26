@@ -58,8 +58,23 @@ public class CandemoniumServerTest {
                 .body(aCadmiumRequest.build())
                 .asJson();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
-                .withRequestBody(matchingJsonPath("$.registration")));
+                .withRequestBody(matchingJsonPath("$[?(@.registration == \"ML04SXT\")]"))
+                .withRequestBody(matchingJsonPath("$.features"))
+
+        );
     }
+
+//    @Test
+//    public void cadmiumResponse_betterJsonPathMatchers() throws Exception {
+//        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+//                .body(aCadmiumRequest.build())
+//                .asJson();
+//        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+//                .withRequestBody(matchingRegistration("ML04SXT"))
+//                .withRequestBody(matchingFeatures("$.features"))
+//
+//        );
+//    }
 
     @Ignore
     @Test
