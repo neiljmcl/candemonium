@@ -1,30 +1,34 @@
 import com.github.tomakehurst.wiremock.matching.MatchResult;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
+import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.common.LocalNotifier.notifier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CadmiumRequestPatternBuilder {
-    SoftAssertions softly;
+    private final List<Condition<DocumentContext>> conditions;
     public CadmiumRequestPatternBuilder() {
-        softly = new SoftAssertions();
+        conditions = new ArrayList<>();
     }
 
     public StringValuePattern build() {
-        return new CadmiumRequestMatch("Whose woods these are I think I know");
+        return new CadmiumRequestMatch(conditions);
     }
-    public CadmiumRequestPatternBuilder withRegistration(String registration) {
-        // "$.registration", registration,
-        // Function jsonString -> actualValue; expectedValue;
-        // function(jsonString) -> Condition
-
-
+    public CadmiumRequestPatternBuilder withRegistration(final String registration) {
+        conditions.add(new Condition<>(ctx -> {
+            return registration.equals(ctx.read("$.registration"));
+        }, "Failed to find registration: " + registration));
 
         return this;
     }
+
 
     public CadmiumRequestPatternBuilder withFeatures(String... features) {
         return this;
@@ -32,21 +36,22 @@ public class CadmiumRequestPatternBuilder {
 
 
     private class CadmiumRequestMatch extends StringValuePattern {
+        private final List<Condition<DocumentContext>> conditions;
 
-        public CadmiumRequestMatch(String expectedValue) {
-            // This is what will be in the failed match message.
-            super(expectedValue);
+        public CadmiumRequestMatch(List<Condition<DocumentContext>> conditions) {
+            super(conditions.stream().map(c -> c.toString()).collect(Collectors.joining(" ")));
+            this.conditions = conditions;
         }
 
         public MatchResult match(String value) {
-            return MatchResult.of(doJsonPathsMatch(value));
+            return MatchResult.of(validateFields(value));
         }
 
-        private boolean doJsonPathsMatch(String value) {
+        private boolean validateFields(String json) {
             try {
-                String registration = JsonPath.parse(value).read("$.registration");
-                softly.assertThat(registration).isEqualTo("ML04SXT");
-
+                DocumentContext documentContext = JsonPath.parse(json);
+                SoftAssertions softly = new SoftAssertions();
+                conditions.forEach(c -> softly.assertThat(documentContext).is(c));
                 softly.assertAll();
             } catch (AssertionError e) {
                 notifier().info(String.format("Match failed: %s%n", e.getMessage()));
@@ -63,7 +68,7 @@ public class CadmiumRequestPatternBuilder {
 
                 String message = String.format(
                         "Warning: JSON path expression '%s' failed to match document '%s' because %s",
-                        expectedValue, value, error);
+                        expectedValue, json, error);
                 notifier().info(message);
                 return false;
             }

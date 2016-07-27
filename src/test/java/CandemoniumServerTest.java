@@ -33,18 +33,10 @@ public class CandemoniumServerTest {
                         .withBody(aCadmiumResponse.build())));
     }
 
-    @Test
-    public void cadmiumResponse_fuzzyMatchOnRegistration() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
-                .body(aCadmiumRequest.build())
-                .asJson();
-        candemonium.verify(postRequestedFor(urlEqualTo("/"))
-                .withRequestBody(containing("ML04SXT")));
-    }
 
     @Test
-    public void cadmiumResponse_exactJsonMatch() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+    public void cadmiumRequest_exactJsonMatch() throws Exception {
+        Unirest.post("http://localhost:9092/")
                 .body(aCadmiumRequest.build())
                 .asJson();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
@@ -55,89 +47,59 @@ public class CandemoniumServerTest {
     }
 
     @Test
-    public void cadmiumResponse_jsonPathMatch() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+    public void cadmiumRequest_jsonPathMatch() throws Exception {
+        Unirest.post("http://localhost:9092/")
                 .body(aCadmiumRequest.build())
                 .asJson();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
                 .withRequestBody(matchingJsonPath("$[?(@.registration == \"ML04SXT\")]"))
                 .withRequestBody(matchingJsonPath("$.features"))
-
         );
     }
 
     @Test
-    public void cadmiumResponse_jsonPathMatchWithSlightlyCustomizedMatcher() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+    public void cadmiumRequest_withCorrectRegistration_passesTheTest() throws Exception {
+        Unirest.post("http://localhost:9092/")
                 .body(aCadmiumRequest.build())
                 .asJson();
-        candemonium.verify(postRequestedFor(urlEqualTo("/"))
-                .withRequestBody(matchingRegistration("ML04SXT"))
-                .withRequestBody(matchingJsonPath("$.features"))
-        );
-    }
-
-    @Test
-    public void cadmiumResponse_jsonPathMatchWithSlightlyMoreCustomizedMatcher() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
-                .body(aCadmiumRequest.build())
-                .asJson();
-        candemonium.verify(postRequestedFor(urlEqualTo("/"))
-                .withRequestBody(matchingRegistrationII("ML04SXT")));
-    }
-
-//    @Ignore
-//    @Test
-//    public void cadmiumResponse_anOfficialCadmiumRequestMatcher() throws Exception {
-//        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
-//                .body(aCadmiumRequest.build())
-//                .asJson();
-//        // throws a null pointer exception when it fails to match: there seems to be no way to fix this.
-//        candemonium.verify(new RequestPatternBuilder(new CadmiumRequestMatcher()));
-//    }
-
-    @Test
-    public void cadmiumResponse_aHorriblyBodgedStringValuePattern() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
-                .body(aCadmiumRequest.build())
-                .asJson();
-        // throws a null pointer exception when it fails to match: there seems to be no way to fix this.
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
                 .withRequestBody(new CadmiumRequestPatternBuilder()
                         .withRegistration("ML04SXT")
-                        .withFeatures()
                         .build()));
     }
 
-    private StringValuePattern matchingRegistration(String registration) {
-        return new MatchesJsonPathPattern(String.format("$[?(@.registration == \"%s\")]", registration));
-    }
-
-    private StringValuePattern matchingRegistrationII(String registration) {
-        return new JsonMatcher(registration);
-    }
-
-//    @Test
-//    public void cadmiumResponse_betterJsonPathMatchers() throws Exception {
-//        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
-//                .body(aCadmiumRequest.build())
-//                .asJson();
-//        candemonium.verify(postRequestedFor(urlEqualTo("/"))
-//                .withRequestBody(matchingRegistration("ML04SXT"))
-//                .withRequestBody(matchingFeatures("$.features"))
-//
-//        );
-//    }
-
-    @Ignore
-    @Test
-    public void cadmiumResponse_someKindOfJsonMatcher() throws Exception {
-        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+    @Test(expected = AssertionError.class)
+    public void cadmiumRequest_withIncorrectRegistration_throwsAssertionError() throws Exception {
+        Unirest.post("http://localhost:9092/")
                 .body(aCadmiumRequest.build())
                 .asJson();
-        ContractMatcher anIncomingResponse = new ContractMatcher();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
-                .withRequestBody(JsonValueMatcher.matches(anIncomingResponse
-                        .withRegistration("ML04SZT"))));
+                .withRequestBody(new CadmiumRequestPatternBuilder()
+                        .withRegistration("ML05SXT")
+                        .build()));
+    }
+
+    @Test
+    public void cadmiumRequest_withCorrectFeatures_verifiesRequest() throws Exception {
+        Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(new CadmiumRequestPatternBuilder()
+                        .withRegistration("ML04SXT")
+                        .withFeatures("warp drive")
+                        .build()));
+    }
+
+    @Test(expected = AssertionError.class)
+    public void cadmiumResponse_withIncorrectFeatures_throwsAssertionError() throws Exception {
+        Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        candemonium.verify(postRequestedFor(urlEqualTo("/"))
+                .withRequestBody(new CadmiumRequestPatternBuilder()
+                        .withRegistration("ML04SXT")
+                        .withFeatures("transphasic torpedos")
+                        .build()));
     }
 }
