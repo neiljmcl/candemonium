@@ -1,5 +1,7 @@
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.MatchesJsonPathPattern;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
@@ -84,6 +86,16 @@ public class CandemoniumServerTest {
                 .asJson();
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
                 .withRequestBody(matchingRegistrationII("ML04SXT")));
+    }
+
+    @Ignore
+    @Test
+    public void cadmiumResponse_anOfficialCadmiumRequestMatcher() throws Exception {
+        HttpResponse<JsonNode> response = Unirest.post("http://localhost:9092/")
+                .body(aCadmiumRequest.build())
+                .asJson();
+        // throws a null pointer exception when it fails to match: there seems to be no way to fix this.
+        candemonium.verify(new RequestPatternBuilder(new CadmiumRequestMatcher()));
     }
 
     private StringValuePattern matchingRegistration(String registration) {
