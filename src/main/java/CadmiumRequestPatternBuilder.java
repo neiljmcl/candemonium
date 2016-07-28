@@ -2,18 +2,18 @@ import com.github.tomakehurst.wiremock.matching.MatchResult;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import org.assertj.core.api.Condition;
-import org.assertj.core.api.SoftAssertions;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.common.LocalNotifier.notifier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CadmiumRequestPatternBuilder {
-    private final List<Condition<DocumentContext>> conditions;
+    private final List<LazyAssertion> conditions;
     public CadmiumRequestPatternBuilder() {
         conditions = new ArrayList<>();
     }
@@ -22,37 +22,46 @@ public class CadmiumRequestPatternBuilder {
         return new CadmiumRequestMatch(conditions);
     }
     public CadmiumRequestPatternBuilder withRegistration(final String registration) {
-        conditions.add(new Condition<>(ctx -> {
-            return registration.equals(ctx.read("$.registration"));
-        }, "Failed to find registration: " + registration));
+        Consumer<DocumentContext> assertion = ctx -> {
+            assertThat((String) ctx.read("$.registration")).isEqualTo(registration);
+        };
+        String message = String.format("Expecting registration: <%s>", registration);
 
+        conditions.add(new LazyAssertion(assertion, message));
         return this;
     }
-
 
     public CadmiumRequestPatternBuilder withFeatures(String... features) {
+        Consumer<DocumentContext> assertion = ctx -> {
+            assertThat((List<String>) ctx.read("$.features")).containsExactly(features);
+        };
+        String message = String.format("Expecting features containing all of: <%s>",
+                Arrays.asList(features).stream().collect(Collectors.joining(", ")));
+
+        conditions.add(new LazyAssertion(assertion, message));
         return this;
     }
 
+    private static String expectedDifferences(List<LazyAssertion> lazyAssertions) {
+        return lazyAssertions.stream()
+                .map(a -> a.toString())
+                .collect(Collectors.joining(System.getProperty("line.separator")));
+    }
 
     private class CadmiumRequestMatch extends StringValuePattern {
-        private final List<Condition<DocumentContext>> conditions;
-
-        public CadmiumRequestMatch(List<Condition<DocumentContext>> conditions) {
-            super(conditions.stream().map(c -> c.toString()).collect(Collectors.joining(" ")));
-            this.conditions = conditions;
+        private final List<LazyAssertion> lazyAssertions;
+        public CadmiumRequestMatch(List<LazyAssertion> lazyAssertions) {
+            super(expectedDifferences(lazyAssertions));
+            this.lazyAssertions = lazyAssertions;
         }
 
         public MatchResult match(String value) {
             return MatchResult.of(validateFields(value));
         }
-
         private boolean validateFields(String json) {
             try {
                 DocumentContext documentContext = JsonPath.parse(json);
-                SoftAssertions softly = new SoftAssertions();
-                conditions.forEach(c -> softly.assertThat(documentContext).is(c));
-                softly.assertAll();
+                lazyAssertions.forEach(c -> c.apply(documentContext));
             } catch (AssertionError e) {
                 notifier().info(String.format("Match failed: %s%n", e.getMessage()));
                 return false;
@@ -75,4 +84,23 @@ public class CadmiumRequestPatternBuilder {
             return true;
         }
     }
+
+    private class LazyAssertion {
+        private final Consumer<DocumentContext> anAssertion;
+        private final String message;
+
+        public LazyAssertion(Consumer<DocumentContext> anAssertion, String message) {
+            this.anAssertion = anAssertion;
+            this.message = message;
+        }
+        public void apply(DocumentContext documentContext) {
+            this.anAssertion.accept(documentContext);
+        }
+
+        @Override
+        public String toString() {
+            return message;
+        }
+    }
+
 }

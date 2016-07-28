@@ -87,7 +87,7 @@ public class CandemoniumServerTest {
         candemonium.verify(postRequestedFor(urlEqualTo("/"))
                 .withRequestBody(new CadmiumRequestPatternBuilder()
                         .withRegistration("ML04SXT")
-                        .withFeatures("warp drive")
+                        .withFeatures("Warp drive")
                         .build()));
     }
 
